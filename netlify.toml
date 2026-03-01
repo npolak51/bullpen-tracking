@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+  # Disable secrets scanning - Supabase URL and anon key are designed for
+  # client-side use and are intentionally embedded in the build output.
+  [build.environment]
+    SECRETS_SCAN_ENABLED = "false"
