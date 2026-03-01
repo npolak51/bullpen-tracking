@@ -21,8 +21,8 @@ export function isStrike(actual_x: number, actual_y: number): boolean {
   )
 }
 
-const INTENDED_MARGIN = 0.2 // pitches within this many cells of intended zone still count as 100%
-const DISTANCE_PENALTY = 18 // per cell of distance (softer than before)
+const INTENDED_MARGIN = 0.15 // pitches within this many cells of intended zone still count as 100%
+const DISTANCE_PENALTY = 21 // per cell of distance
 
 export function getAccuracy(
   intendedCells: { row: number; col: number }[],
