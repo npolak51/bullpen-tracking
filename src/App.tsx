@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { OfflineProvider } from './contexts/OfflineContext'
+import { OfflineBanner } from './components/OfflineBanner'
 import { Roster } from './pages/Roster'
 import { Session } from './pages/Session'
 import { History } from './pages/History'
@@ -43,7 +45,9 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('roster')
 
   return (
+    <OfflineProvider>
     <div style={styles.app}>
+      <OfflineBanner />
       <header style={styles.header}>
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
           Bullpen Tracker
@@ -80,5 +84,6 @@ export default function App() {
         {tab === 'history' && <History />}
       </main>
     </div>
+    </OfflineProvider>
   )
 }

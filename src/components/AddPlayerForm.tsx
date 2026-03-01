@@ -1,11 +1,19 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import {
+  isOnline,
+  addToQueue,
+  addPendingPlayerToCache,
+} from '../lib/offline'
+import { useOffline } from '../contexts/OfflineContext'
 
 interface AddPlayerFormProps {
   onSuccess: () => void
 }
 
 export function AddPlayerForm({ onSuccess }: AddPlayerFormProps) {
+  const offline = useOffline()
+
   if (!supabase) {
     return (
       <p style={{ color: '#f87171' }}>
@@ -27,8 +35,24 @@ export function AddPlayerForm({ onSuccess }: AddPlayerFormProps) {
     setLoading(true)
     setError(null)
 
-    if (!supabase) return
-    const { error: err } = await supabase.from('players').insert({ name: trimmed })
+    if (!isOnline()) {
+      const tempId = crypto.randomUUID()
+      await addToQueue({ type: 'add_player', tempId, data: { name: trimmed } })
+      await addPendingPlayerToCache({
+        id: tempId,
+        name: trimmed,
+        created_at: new Date().toISOString(),
+      })
+      setLoading(false)
+      setName('')
+      offline?.refreshPendingCount()
+      onSuccess()
+      return
+    }
+
+    const { error: err } = await supabase!
+      .from('players')
+      .insert({ name: trimmed })
 
     setLoading(false)
     if (err) {

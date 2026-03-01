@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import {
+  isOnline,
+  getCachedPlayers,
+  setCachedPlayers,
+} from '../lib/offline'
 import type { Player } from '../types/database'
 
 interface PlayerPickerProps {
@@ -19,7 +24,14 @@ export function PlayerPicker({ onSelect, selectedId }: PlayerPickerProps) {
       return
     }
 
-    async function fetchPlayers() {
+    async function loadPlayers() {
+      if (!isOnline()) {
+        const cached = await getCachedPlayers()
+        setLoading(false)
+        setPlayers(cached)
+        return
+      }
+
       const { data, error: err } = await supabase!
         .from('players')
         .select('id, name, created_at')
@@ -30,10 +42,12 @@ export function PlayerPicker({ onSelect, selectedId }: PlayerPickerProps) {
         setError(err.message)
         return
       }
-      setPlayers(data ?? [])
+      const list = data ?? []
+      setPlayers(list)
+      await setCachedPlayers(list)
     }
 
-    fetchPlayers()
+    loadPlayers()
   }, [])
 
   if (loading) {

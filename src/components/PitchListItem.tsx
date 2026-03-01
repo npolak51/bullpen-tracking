@@ -28,6 +28,7 @@ interface PitchListItemProps {
   onDelete: () => void
   onUpdateVelocity: (velocity: number | null) => void
   onUpdateLocation: (actual_x: number, actual_y: number) => void
+  offline?: boolean
 }
 
 export function PitchListItem({
@@ -35,6 +36,7 @@ export function PitchListItem({
   onDelete,
   onUpdateVelocity,
   onUpdateLocation,
+  offline = false,
 }: PitchListItemProps) {
   const [editing, setEditing] = useState(false)
   const [editingLocation, setEditingLocation] = useState(false)
@@ -148,7 +150,7 @@ export function PitchListItem({
           {pitch.velocity != null ? `${pitch.velocity} mph` : '—'}
         </span>
       )}
-      {!editing && (
+      {!editing && !offline && (
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -165,7 +167,7 @@ export function PitchListItem({
           Edit
         </button>
       )}
-      {!editing && !editingLocation && (
+      {!editing && !editingLocation && !offline && (
         <button
           type="button"
           onClick={() => {
@@ -188,6 +190,7 @@ export function PitchListItem({
       <button
         type="button"
         onClick={onDelete}
+        disabled={offline}
         style={{
           padding: '4px 8px',
           fontSize: 12,
@@ -195,8 +198,9 @@ export function PitchListItem({
           border: '1px solid #dc2626',
           borderRadius: 4,
           color: '#dc2626',
-          cursor: 'pointer',
           marginLeft: 'auto',
+          cursor: offline ? 'not-allowed' : 'pointer',
+          opacity: offline ? 0.5 : 1,
         }}
       >
         Delete

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import {
+  isOnline,
+  getCachedPlayers,
+  setCachedPlayers,
+} from '../lib/offline'
 import type { Player } from '../types/database'
 
 interface PlayerListProps {
@@ -19,9 +24,16 @@ export function PlayerList({ refreshTrigger, onPlayerDeleted }: PlayerListProps)
       return
     }
 
-    async function fetchPlayers() {
+    async function loadPlayers() {
       setLoading(true)
       setError(null)
+
+      if (!isOnline()) {
+        const cached = await getCachedPlayers()
+        setLoading(false)
+        setPlayers(cached)
+        return
+      }
 
       const { data, error: err } = await supabase!
         .from('players')
@@ -33,10 +45,12 @@ export function PlayerList({ refreshTrigger, onPlayerDeleted }: PlayerListProps)
         setError(err.message)
         return
       }
-      setPlayers(data ?? [])
+      const list = data ?? []
+      setPlayers(list)
+      await setCachedPlayers(list)
     }
 
-    fetchPlayers()
+    loadPlayers()
   }, [refreshTrigger])
 
   if (loading) {
@@ -64,7 +78,7 @@ export function PlayerList({ refreshTrigger, onPlayerDeleted }: PlayerListProps)
   }
 
   async function handleDeletePlayer(playerId: string) {
-    if (!supabase) return
+    if (!supabase || !isOnline()) return
     if (!confirm('Remove this player from the roster? Their sessions and pitches will also be deleted.')) return
 
     const { error: err } = await supabase.from('players').delete().eq('id', playerId)
@@ -95,6 +109,8 @@ export function PlayerList({ refreshTrigger, onPlayerDeleted }: PlayerListProps)
           <button
             type="button"
             onClick={() => handleDeletePlayer(player.id)}
+            disabled={!isOnline()}
+            title={!isOnline() ? 'Remove is unavailable offline' : undefined}
             style={{
               padding: '4px 8px',
               fontSize: 12,
@@ -102,7 +118,8 @@ export function PlayerList({ refreshTrigger, onPlayerDeleted }: PlayerListProps)
               border: '1px solid #dc2626',
               borderRadius: 4,
               color: '#dc2626',
-              cursor: 'pointer',
+              cursor: isOnline() ? 'pointer' : 'not-allowed',
+              opacity: isOnline() ? 1 : 0.5,
             }}
           >
             Remove

@@ -10,7 +10,7 @@ import {
   GAP,
 } from '../lib/strikeZoneConstants'
 
-const CIRCLE_SIZE_RATIO = 0.3
+const CIRCLE_SIZE_RATIO = 0.39
 const CIRCLE_DIAMETER = Math.min(CELL_WIDTH, CELL_HEIGHT) * CIRCLE_SIZE_RATIO
 
 interface PitchDisplay {

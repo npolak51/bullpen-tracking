@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import {
+  isOnline,
+  addToQueue,
+} from '../lib/offline'
+import { useOffline } from '../contexts/OfflineContext'
 import { PlayerPicker } from '../components/PlayerPicker'
 import { AddPitchForm } from '../components/AddPitchForm'
 import { PitchListItem } from '../components/PitchListItem'
@@ -17,6 +22,7 @@ interface LoggedPitch {
 }
 
 export function Session() {
+  const offline = useOffline()
   const [player, setPlayer] = useState<Player | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [pitches, setPitches] = useState<LoggedPitch[]>([])
@@ -25,11 +31,26 @@ export function Session() {
   const [error, setError] = useState<string | null>(null)
 
   async function handleStartSession() {
-    if (!player || !supabase) return
+    if (!player) return
 
     setStarting(true)
     setError(null)
 
+    if (!isOnline()) {
+      const tempSessionId = crypto.randomUUID()
+      await addToQueue({
+        type: 'start_session',
+        tempId: tempSessionId,
+        data: { player_id: player.id },
+      })
+      setStarting(false)
+      setSessionId(tempSessionId)
+      setPitches([])
+      offline?.refreshPendingCount()
+      return
+    }
+
+    if (!supabase) return
     const { data, error: err } = await supabase
       .from('sessions')
       .insert({ player_id: player.id })
@@ -52,20 +73,41 @@ export function Session() {
     actual_y: number
     velocity: number | null
   }) {
-    if (!sessionId || !supabase) return
+    if (!sessionId) return
 
     const sequence_order = pitches.length + 1
+    const pitchData = {
+      session_id: sessionId,
+      pitch_type: pitch.pitch_type,
+      intended_cells: pitch.intended_cells,
+      actual_x: pitch.actual_x,
+      actual_y: pitch.actual_y,
+      velocity: pitch.velocity,
+      sequence_order,
+    }
+
+    if (!isOnline()) {
+      await addToQueue({ type: 'add_pitch', data: pitchData })
+      setPitches((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          pitch_type: pitch.pitch_type,
+          intended_cells: pitch.intended_cells,
+          actual_x: pitch.actual_x,
+          actual_y: pitch.actual_y,
+          velocity: pitch.velocity,
+          sequence_order,
+        },
+      ])
+      offline?.refreshPendingCount()
+      return
+    }
+
+    if (!supabase) return
     const { data, error: err } = await supabase
       .from('pitches')
-      .insert({
-        session_id: sessionId,
-        pitch_type: pitch.pitch_type,
-        intended_cells: pitch.intended_cells,
-        actual_x: pitch.actual_x,
-        actual_y: pitch.actual_y,
-        velocity: pitch.velocity,
-        sequence_order,
-      })
+      .insert(pitchData)
       .select('id, pitch_type, intended_cells, actual_x, actual_y, velocity, sequence_order')
       .single()
 
@@ -77,13 +119,13 @@ export function Session() {
   }
 
   async function handleDeletePitch(pitchId: string) {
-    if (!supabase) return
+    if (!supabase || !isOnline()) return
     await supabase.from('pitches').delete().eq('id', pitchId)
     setPitches((prev) => prev.filter((p) => p.id !== pitchId))
   }
 
   async function handleUpdatePitchVelocity(pitchId: string, velocity: number | null) {
-    if (!supabase) return
+    if (!supabase || !isOnline()) return
     const { error: err } = await supabase
       .from('pitches')
       .update({ velocity })
@@ -100,7 +142,7 @@ export function Session() {
     actual_x: number,
     actual_y: number
   ) {
-    if (!supabase) return
+    if (!supabase || !isOnline()) return
     const { error: err } = await supabase
       .from('pitches')
       .update({ actual_x, actual_y })
@@ -115,11 +157,22 @@ export function Session() {
   }
 
   async function handleCompleteSession() {
-    if (!sessionId || !supabase) return
+    if (!sessionId) return
 
     setCompleting(true)
     setError(null)
 
+    if (!isOnline()) {
+      await addToQueue({ type: 'complete_session', data: { session_id: sessionId } })
+      setCompleting(false)
+      setSessionId(null)
+      setPlayer(null)
+      setPitches([])
+      offline?.refreshPendingCount()
+      return
+    }
+
+    if (!supabase) return
     const { error: err } = await supabase
       .from('sessions')
       .update({ completed_at: new Date().toISOString() })
@@ -234,6 +287,7 @@ export function Session() {
                 onUpdateLocation={(x, y) =>
                   handleUpdatePitchLocation(pitch.id, x, y)
                 }
+                offline={!isOnline()}
               />
             ))}
           </ul>
