@@ -36,7 +36,8 @@ export function Session() {
     setStarting(true)
     setError(null)
 
-    if (!isOnline()) {
+    async function startOffline() {
+      if (!player) return
       const tempSessionId = crypto.randomUUID()
       await addToQueue({
         type: 'start_session',
@@ -47,23 +48,36 @@ export function Session() {
       setSessionId(tempSessionId)
       setPitches([])
       offline?.refreshPendingCount()
+    }
+
+    if (!isOnline()) {
+      await startOffline()
       return
     }
 
     if (!supabase) return
-    const { data, error: err } = await supabase
-      .from('sessions')
-      .insert({ player_id: player.id })
-      .select('id')
-      .single()
+    try {
+      const { data, error: err } = await supabase
+        .from('sessions')
+        .insert({ player_id: player.id })
+        .select('id')
+        .single()
 
-    setStarting(false)
-    if (err) {
-      setError(err.message)
-      return
+      setStarting(false)
+      if (err) {
+        setError(err.message)
+        return
+      }
+      setSessionId(data.id)
+      setPitches([])
+    } catch (e) {
+      if (e instanceof TypeError && (e.message === 'Load failed' || e.message === 'Failed to fetch')) {
+        await startOffline()
+      } else {
+        setStarting(false)
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+      }
     }
-    setSessionId(data.id)
-    setPitches([])
   }
 
   async function handleAddPitch(pitch: {
@@ -86,7 +100,7 @@ export function Session() {
       sequence_order,
     }
 
-    if (!isOnline()) {
+    async function addPitchOffline() {
       await addToQueue({ type: 'add_pitch', data: pitchData })
       setPitches((prev) => [
         ...prev,
@@ -101,21 +115,33 @@ export function Session() {
         },
       ])
       offline?.refreshPendingCount()
+    }
+
+    if (!isOnline()) {
+      await addPitchOffline()
       return
     }
 
     if (!supabase) return
-    const { data, error: err } = await supabase
-      .from('pitches')
-      .insert(pitchData)
-      .select('id, pitch_type, intended_cells, actual_x, actual_y, velocity, sequence_order')
-      .single()
+    try {
+      const { data, error: err } = await supabase
+        .from('pitches')
+        .insert(pitchData)
+        .select('id, pitch_type, intended_cells, actual_x, actual_y, velocity, sequence_order')
+        .single()
 
-    if (err) {
-      setError(err.message)
-      return
+      if (err) {
+        setError(err.message)
+        return
+      }
+      setPitches((prev) => [...prev, { ...data, id: data.id }])
+    } catch (e) {
+      if (e instanceof TypeError && (e.message === 'Load failed' || e.message === 'Failed to fetch')) {
+        await addPitchOffline()
+      } else {
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+      }
     }
-    setPitches((prev) => [...prev, { ...data, id: data.id }])
   }
 
   async function handleDeletePitch(pitchId: string) {
@@ -162,31 +188,45 @@ export function Session() {
     setCompleting(true)
     setError(null)
 
-    if (!isOnline()) {
+    async function completeOffline() {
+      if (!sessionId) return
       await addToQueue({ type: 'complete_session', data: { session_id: sessionId } })
       setCompleting(false)
       setSessionId(null)
       setPlayer(null)
       setPitches([])
       offline?.refreshPendingCount()
+    }
+
+    if (!isOnline()) {
+      await completeOffline()
       return
     }
 
     if (!supabase) return
-    const { error: err } = await supabase
-      .from('sessions')
-      .update({ completed_at: new Date().toISOString() })
-      .eq('id', sessionId)
+    try {
+      const { error: err } = await supabase
+        .from('sessions')
+        .update({ completed_at: new Date().toISOString() })
+        .eq('id', sessionId)
 
-    setCompleting(false)
-    if (err) {
-      setError(err.message)
-      return
+      setCompleting(false)
+      if (err) {
+        setError(err.message)
+        return
+      }
+
+      setSessionId(null)
+      setPlayer(null)
+      setPitches([])
+    } catch (e) {
+      if (e instanceof TypeError && (e.message === 'Load failed' || e.message === 'Failed to fetch')) {
+        await completeOffline()
+      } else {
+        setCompleting(false)
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+      }
     }
-
-    setSessionId(null)
-    setPlayer(null)
-    setPitches([])
   }
 
   if (!supabase) {

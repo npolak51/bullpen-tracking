@@ -35,7 +35,7 @@ export function AddPlayerForm({ onSuccess }: AddPlayerFormProps) {
     setLoading(true)
     setError(null)
 
-    if (!isOnline()) {
+    async function addOffline() {
       const tempId = crypto.randomUUID()
       await addToQueue({ type: 'add_player', tempId, data: { name: trimmed } })
       await addPendingPlayerToCache({
@@ -47,21 +47,36 @@ export function AddPlayerForm({ onSuccess }: AddPlayerFormProps) {
       setName('')
       offline?.refreshPendingCount()
       onSuccess()
+    }
+
+    if (!isOnline()) {
+      await addOffline()
       return
     }
 
-    const { error: err } = await supabase!
-      .from('players')
-      .insert({ name: trimmed })
+    try {
+      const { error: err } = await supabase!
+        .from('players')
+        .insert({ name: trimmed })
 
-    setLoading(false)
-    if (err) {
-      setError(err.message)
-      return
+      if (err) {
+        setLoading(false)
+        setError(err.message)
+        return
+      }
+
+      setLoading(false)
+      setName('')
+      onSuccess()
+    } catch (e) {
+      // Network error (e.g. "Load failed") - fall back to offline queue
+      if (e instanceof TypeError && (e.message === 'Load failed' || e.message === 'Failed to fetch')) {
+        await addOffline()
+      } else {
+        setLoading(false)
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+      }
     }
-
-    setName('')
-    onSuccess()
   }
 
   return (
