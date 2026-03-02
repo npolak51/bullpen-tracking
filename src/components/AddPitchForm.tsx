@@ -4,7 +4,8 @@ import { BatterSilhouette } from './BatterSilhouette'
 import { GRID_HEIGHT } from '../lib/strikeZoneConstants'
 import { PitchTypeSelector } from './PitchTypeSelector'
 import type { PitchType } from '../types/database'
-import { PITCH_TYPE_COLORS } from '../types/database'
+import { useCustomPitchTypes } from '../contexts/CustomPitchTypesContext'
+import { getPitchTypeColor } from '../lib/pitchTypes'
 
 interface AddPitchFormProps {
   onAdd: (pitch: {
@@ -17,6 +18,7 @@ interface AddPitchFormProps {
 }
 
 export function AddPitchForm({ onAdd }: AddPitchFormProps) {
+  const { customTypes } = useCustomPitchTypes()
   const [pitchType, setPitchType] = useState<PitchType>('four_seam')
   const [intendedCells, setIntendedCells] = useState<{ row: number; col: number }[]>([])
   const [actualPosition, setActualPosition] = useState<{ x: number; y: number } | null>(null)
@@ -58,7 +60,7 @@ export function AddPitchForm({ onAdd }: AddPitchFormProps) {
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: 'block', fontSize: 14, marginBottom: 6, color: '#94a3b8' }}>
           {selecting === 'intended'
-            ? '1. Drag across strike zone to select intended location'
+            ? '1. Drag across grid to select intended location'
             : '2. Tap or drag to place actual pitch (circle)'}
         </label>
         <div style={{ marginBottom: 8 }}>
@@ -111,7 +113,7 @@ export function AddPitchForm({ onAdd }: AddPitchFormProps) {
             onIntendedSet={setIntendedCells}
             onActualPlace={(x, y) => setActualPosition({ x, y })}
             selecting={selecting}
-            pitchColor={PITCH_TYPE_COLORS[pitchType]}
+            pitchColor={getPitchTypeColor(pitchType, customTypes)}
           />
           <BatterSilhouette height={GRID_HEIGHT} />
         </div>

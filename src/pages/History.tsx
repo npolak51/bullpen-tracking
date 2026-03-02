@@ -2,21 +2,17 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { StrikeZoneView } from '../components/StrikeZoneView'
 import { getAccuracy, isStrike } from '../lib/pitchUtils'
+import {
+  BUILT_IN_TYPES,
+  getPitchTypeColor,
+  getPitchTypeLabel,
+} from '../lib/pitchTypes'
+import { useCustomPitchTypes } from '../contexts/CustomPitchTypesContext'
 import type { Player } from '../types/database'
 import type { Session } from '../types/database'
 import type { Pitch, PitchType } from '../types/database'
-import { PITCH_TYPE_COLORS } from '../types/database'
 
 type ViewMode = 'sessions' | 'composite' | 'combine'
-
-const PITCH_LABELS: Record<PitchType, string> = {
-  four_seam: '4-Seam',
-  two_seam: '2-Seam',
-  curveball: 'Curve',
-  slider: 'Slider',
-  splitter: 'Splitter',
-  changeup: 'Changeup',
-}
 
 interface PitchTypeStats {
   pitch_type: PitchType
@@ -34,17 +30,17 @@ function computePitchTypeStats(pitches: Pitch[]): PitchTypeStats[] {
     byType.set(p.pitch_type, list)
   }
 
+  // Built-in first, then custom (alphabetically)
+  const customTypes = Array.from(byType.keys()).filter(
+    (t) => !BUILT_IN_TYPES.includes(t as (typeof BUILT_IN_TYPES)[number])
+  )
+  customTypes.sort()
   const types: PitchType[] = [
-    'four_seam',
-    'two_seam',
-    'curveball',
-    'slider',
-    'splitter',
-    'changeup',
+    ...BUILT_IN_TYPES.filter((t) => byType.has(t)),
+    ...customTypes,
   ]
 
   return types
-    .filter((t) => byType.has(t))
     .map((pitch_type) => {
       const list = byType.get(pitch_type)!
       const accuracies = list.map((p) =>
@@ -92,6 +88,7 @@ function formatDate(iso: string) {
 }
 
 export function History() {
+  const { customTypes } = useCustomPitchTypes()
   const [players, setPlayers] = useState<Player[]>([])
   const [sessions, setSessions] = useState<(Session & { player_name: string })[]>([])
   const [pitches, setPitches] = useState<Pitch[]>([])
@@ -545,12 +542,12 @@ export function History() {
                           width: 12,
                           height: 12,
                           borderRadius: 4,
-                          backgroundColor: PITCH_TYPE_COLORS[stat.pitch_type],
+                          backgroundColor: getPitchTypeColor(stat.pitch_type, customTypes),
                           flexShrink: 0,
                         }}
                       />
                       <span style={{ minWidth: 70, fontWeight: 500 }}>
-                        {PITCH_LABELS[stat.pitch_type]}
+                        {getPitchTypeLabel(stat.pitch_type, customTypes)}
                       </span>
                       <span style={{ minWidth: 50, color: '#94a3b8' }}>
                         {stat.count} pitches

@@ -1,5 +1,6 @@
 import type { PitchType } from '../types/database'
-import { PITCH_TYPE_COLORS } from '../types/database'
+import { useCustomPitchTypes } from '../contexts/CustomPitchTypesContext'
+import { getPitchTypeColor } from '../lib/pitchTypes'
 import { BatterSilhouette } from './BatterSilhouette'
 import {
   GRID_SIZE,
@@ -24,6 +25,7 @@ interface StrikeZoneViewProps {
 }
 
 export function StrikeZoneView({ pitches }: StrikeZoneViewProps) {
+  const { customTypes } = useCustomPitchTypes()
   const strikeZoneWidth = STRIKE_SIZE * CELL_WIDTH + (STRIKE_SIZE - 1) * GAP
   const strikeZoneHeight = STRIKE_SIZE * CELL_HEIGHT + (STRIKE_SIZE - 1) * GAP
   const strikeZoneLeft = STRIKE_OFFSET * CELL_WIDTH + STRIKE_OFFSET * GAP + 2
@@ -114,7 +116,7 @@ export function StrikeZoneView({ pitches }: StrikeZoneViewProps) {
             width: CIRCLE_DIAMETER,
             height: CIRCLE_DIAMETER,
             borderRadius: '50%',
-            backgroundColor: PITCH_TYPE_COLORS[pitch.pitch_type],
+            backgroundColor: getPitchTypeColor(pitch.pitch_type, customTypes),
             border: '2px solid white',
             pointerEvents: 'none',
           }}

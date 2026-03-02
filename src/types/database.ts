@@ -1,10 +1,19 @@
-export type PitchType =
+export type BuiltInPitchType =
   | 'four_seam'
   | 'two_seam'
   | 'curveball'
   | 'slider'
   | 'splitter'
   | 'changeup'
+
+export type PitchType = BuiltInPitchType | string
+
+export interface CustomPitchType {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
 
 export interface Player {
   id: string
@@ -44,12 +53,21 @@ export interface PitchWithSession extends Pitch {
   sessions: Pick<Session, 'id' | 'player_id' | 'started_at' | 'completed_at'> | null
 }
 
-// Pitch type display colors (for strike zone visualization)
-export const PITCH_TYPE_COLORS: Record<PitchType, string> = {
+// Built-in pitch type display colors
+export const PITCH_TYPE_COLORS: Record<BuiltInPitchType, string> = {
   four_seam: '#ef4444',   // red
   two_seam: '#ec4899',    // pink
   curveball: '#22c55e',   // green
   slider: '#eab308',      // yellow
   splitter: '#a855f7',    // purple
   changeup: '#3b82f6',    // blue
+}
+
+export const PITCH_LABELS: Record<BuiltInPitchType, string> = {
+  four_seam: '4-Seam',
+  two_seam: '2-Seam',
+  curveball: 'Curve',
+  slider: 'Slider',
+  splitter: 'Splitter',
+  changeup: 'Changeup',
 }

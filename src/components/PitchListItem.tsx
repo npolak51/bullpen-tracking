@@ -1,19 +1,11 @@
 import { useState } from 'react'
 import type { PitchType } from '../types/database'
-import { PITCH_TYPE_COLORS } from '../types/database'
+import { useCustomPitchTypes } from '../contexts/CustomPitchTypesContext'
+import { getPitchTypeColor, getPitchTypeLabel } from '../lib/pitchTypes'
 import { getAccuracy, isStrike } from '../lib/pitchUtils'
 import { StrikeZone } from './StrikeZone'
 import { BatterSilhouette } from './BatterSilhouette'
 import { GRID_HEIGHT } from '../lib/strikeZoneConstants'
-
-const PITCH_LABELS: Record<PitchType, string> = {
-  four_seam: '4-Seam',
-  two_seam: '2-Seam',
-  curveball: 'Curve',
-  slider: 'Slider',
-  splitter: 'Splitter',
-  changeup: 'Changeup',
-}
 
 interface PitchListItemProps {
   pitch: {
@@ -38,6 +30,7 @@ export function PitchListItem({
   onUpdateLocation,
   offline = false,
 }: PitchListItemProps) {
+  const { customTypes } = useCustomPitchTypes()
   const [editing, setEditing] = useState(false)
   const [editingLocation, setEditingLocation] = useState(false)
   const [locationPosition, setLocationPosition] = useState({
@@ -78,11 +71,11 @@ export function PitchListItem({
           width: 12,
           height: 12,
           borderRadius: 4,
-          backgroundColor: PITCH_TYPE_COLORS[pitch.pitch_type],
+          backgroundColor: getPitchTypeColor(pitch.pitch_type, customTypes),
           flexShrink: 0,
         }}
       />
-      <span style={{ minWidth: 70 }}>{PITCH_LABELS[pitch.pitch_type]}</span>
+      <span style={{ minWidth: 70 }}>{getPitchTypeLabel(pitch.pitch_type, customTypes)}</span>
       <span style={{ minWidth: 60 }}>{accuracy}%</span>
       <span
         style={{
@@ -237,7 +230,7 @@ export function PitchListItem({
               setEditingLocation(false)
             }}
             selecting="actual"
-            pitchColor={PITCH_TYPE_COLORS[pitch.pitch_type]}
+            pitchColor={getPitchTypeColor(pitch.pitch_type, customTypes)}
           />
           <BatterSilhouette height={GRID_HEIGHT} />
           <button

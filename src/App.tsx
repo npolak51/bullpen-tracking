@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { OfflineProvider } from './contexts/OfflineContext'
+import { CustomPitchTypesProvider } from './contexts/CustomPitchTypesContext'
 import { OfflineBanner } from './components/OfflineBanner'
 import { Roster } from './pages/Roster'
 import { Session } from './pages/Session'
@@ -46,6 +47,7 @@ export default function App() {
 
   return (
     <OfflineProvider>
+    <CustomPitchTypesProvider>
     <div style={styles.app}>
       <OfflineBanner />
       <header style={styles.header}>
@@ -79,11 +81,18 @@ export default function App() {
       </nav>
 
       <main style={styles.main}>
-        {tab === 'roster' && <Roster />}
-        {tab === 'session' && <Session />}
-        {tab === 'history' && <History />}
+        <div style={{ display: tab === 'roster' ? 'block' : 'none' }}>
+          <Roster />
+        </div>
+        <div style={{ display: tab === 'session' ? 'block' : 'none' }}>
+          <Session />
+        </div>
+        <div style={{ display: tab === 'history' ? 'block' : 'none' }}>
+          <History />
+        </div>
       </main>
     </div>
+    </CustomPitchTypesProvider>
     </OfflineProvider>
   )
 }

@@ -69,7 +69,9 @@ function getCellsInRect(
   const cells: { row: number; col: number }[] = []
   for (let r = minRow; r <= maxRow; r++) {
     for (let c = minCol; c <= maxCol; c++) {
-      if (isStrikeZone(r, c)) cells.push({ row: r, col: c })
+      if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) {
+        cells.push({ row: r, col: c })
+      }
     }
   }
   return cells
@@ -116,7 +118,7 @@ export function StrikeZone({
     }
 
     const cell = getCellFromPoint(clientX, clientY, rect)
-    if (cell && isStrikeZone(cell.row, cell.col)) {
+    if (cell) {
       setDragStart(cell)
       setDragEnd(cell)
     }
@@ -231,7 +233,7 @@ export function StrikeZone({
                 border: '1px solid #475569',
                 borderRadius: 4,
                 backgroundColor: selected ? pitchColor : isStrike ? '#334155' : '#475569',
-                opacity: selecting === 'intended' && !isStrike ? 0.5 : 1,
+                opacity: 1,
                 pointerEvents: 'none',
               }}
             />
