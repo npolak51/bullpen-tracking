@@ -26,6 +26,7 @@ export interface Session {
   player_id: string
   started_at: string
   completed_at: string | null
+  notes: string | null
 }
 
 export interface IntendedCell {

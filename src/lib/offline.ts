@@ -28,7 +28,7 @@ export type PendingOp =
         sequence_order: number
       }
     }
-  | { type: 'complete_session'; data: { session_id: string } }
+  | { type: 'complete_session'; data: { session_id: string; notes: string | null } }
 
 async function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -136,7 +136,10 @@ export async function syncQueue(onProgress?: (message: string) => void): Promise
         const realSessionId = idMap.get(op.data.session_id) ?? op.data.session_id
         const { error } = await supabase
           .from('sessions')
-          .update({ completed_at: new Date().toISOString() })
+          .update({
+            completed_at: new Date().toISOString(),
+            notes: op.data.notes ?? null,
+          })
           .eq('id', realSessionId)
         if (error) throw error
       }

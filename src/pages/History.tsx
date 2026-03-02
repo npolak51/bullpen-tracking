@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { useResumableSession } from '../contexts/ResumableSessionContext'
 import { StrikeZoneView } from '../components/StrikeZoneView'
 import { getAccuracy, isStrike } from '../lib/pitchUtils'
 import {
@@ -89,6 +90,7 @@ function formatDate(iso: string) {
 
 export function History() {
   const { customTypes } = useCustomPitchTypes()
+  const { resumeSession } = useResumableSession() ?? {}
   const [players, setPlayers] = useState<Player[]>([])
   const [sessions, setSessions] = useState<(Session & { player_name: string })[]>([])
   const [pitches, setPitches] = useState<Pitch[]>([])
@@ -140,7 +142,7 @@ export function History() {
     async function fetchSessions() {
       const { data: sessionsData, error: err } = await supabase!
         .from('sessions')
-        .select('id, player_id, started_at, completed_at')
+        .select('id, player_id, started_at, completed_at, notes')
         .eq('player_id', selectedPlayerId)
         .not('completed_at', 'is', null)
         .order('started_at', { ascending: false })
@@ -396,6 +398,9 @@ export function History() {
                         checked={combinedSessionIds.has(s.id)}
                         onChange={() => toggleCombineSession(s.id)}
                       />
+                      {s.notes && s.notes.trim() && (
+                        <span title="Has notes" style={{ fontSize: 14, opacity: 0.8 }}>📝</span>
+                      )}
                       <span>{formatDate(s.started_at)}</span>
                     </label>
                     <button
@@ -448,7 +453,18 @@ export function History() {
                           : '1px solid transparent',
                     }}
                   >
-                    <span>{formatDate(s.started_at)}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {s.notes && s.notes.trim() && (
+                        <span
+                          title="Has notes"
+                          style={{ fontSize: 14, opacity: 0.8 }}
+                          aria-hidden
+                        >
+                          📝
+                        </span>
+                      )}
+                      {formatDate(s.started_at)}
+                    </span>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteSession(s.id, e)}
@@ -473,6 +489,29 @@ export function History() {
           {/* Strike zone visualization - when we have pitches to show */}
           {pitches.length > 0 && (
             <div>
+              {/* Session notes - when viewing a single session */}
+              {viewMode === 'sessions' && selectedSessionId && (() => {
+                const session = sessions.find((s) => s.id === selectedSessionId)
+                const sessionNotes = session?.notes?.trim()
+                return sessionNotes ? (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      padding: 12,
+                      backgroundColor: 'rgba(30, 41, 59, 0.5)',
+                      borderRadius: 12,
+                      border: '1px solid #334155',
+                    }}
+                  >
+                    <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#94a3b8' }}>
+                      Notes
+                    </h4>
+                    <p style={{ margin: 0, fontSize: 14, whiteSpace: 'pre-wrap' }}>
+                      {sessionNotes}
+                    </p>
+                  </div>
+                ) : null
+              })()}
               <div
                 style={{
                   display: 'flex',
@@ -492,6 +531,42 @@ export function History() {
                   ({pitches.length} pitches)
                 </h3>
                 {viewMode === 'sessions' && selectedSessionId && (
+                  <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const session = sessions.find((s) => s.id === selectedSessionId)
+                      const player = players.find((p) => p.id === session?.player_id)
+                      if (session && player && resumeSession) {
+                        resumeSession({
+                          sessionId: session.id,
+                          player: { id: player.id, name: player.name, created_at: player.created_at },
+                          pitches: pitches.map((p) => ({
+                            id: p.id,
+                            pitch_type: p.pitch_type,
+                            intended_cells: p.intended_cells ?? [],
+                            actual_x: p.actual_x,
+                            actual_y: p.actual_y,
+                            velocity: p.velocity,
+                            sequence_order: p.sequence_order,
+                          })),
+                          notes: session.notes?.trim() ?? '',
+                        })
+                      }
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      backgroundColor: '#059669',
+                      border: 'none',
+                      borderRadius: 4,
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Continue session
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteSession(selectedSessionId)}
@@ -507,6 +582,7 @@ export function History() {
                   >
                     Delete session
                   </button>
+                  </>
                 )}
               </div>
 

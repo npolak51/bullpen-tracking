@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { OfflineProvider } from './contexts/OfflineContext'
 import { CustomPitchTypesProvider } from './contexts/CustomPitchTypesContext'
+import { ResumableSessionProvider } from './contexts/ResumableSessionContext'
 import { OfflineBanner } from './components/OfflineBanner'
 import { Roster } from './pages/Roster'
 import { Session } from './pages/Session'
@@ -48,6 +49,7 @@ export default function App() {
   return (
     <OfflineProvider>
     <CustomPitchTypesProvider>
+    <ResumableSessionProvider onTabChange={setTab}>
     <div style={styles.app}>
       <OfflineBanner />
       <header style={styles.header}>
@@ -92,6 +94,7 @@ export default function App() {
         </div>
       </main>
     </div>
+    </ResumableSessionProvider>
     </CustomPitchTypesProvider>
     </OfflineProvider>
   )

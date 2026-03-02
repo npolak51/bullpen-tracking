@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   isOnline,
   addToQueue,
 } from '../lib/offline'
 import { useOffline } from '../contexts/OfflineContext'
+import { useResumableSession } from '../contexts/ResumableSessionContext'
 import { PlayerPicker } from '../components/PlayerPicker'
 import { AddPitchForm } from '../components/AddPitchForm'
 import { PitchListItem } from '../components/PitchListItem'
@@ -23,12 +24,54 @@ interface LoggedPitch {
 
 export function Session() {
   const offline = useOffline()
+  const { sessionToResume, clearSessionToResume } = useResumableSession() ?? {}
   const [player, setPlayer] = useState<Player | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [pitches, setPitches] = useState<LoggedPitch[]>([])
+  const [notes, setNotes] = useState('')
   const [starting, setStarting] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resuming, setResuming] = useState(false)
+
+  // Load and continue a session from History
+  useEffect(() => {
+    if (!sessionToResume || !supabase || !offline?.isOnline) return
+
+    const toResume = sessionToResume
+    const db = supabase
+
+    void (async () => {
+      setResuming(true)
+      setError(null)
+      const { error: err } = await db
+        .from('sessions')
+        .update({ completed_at: null })
+        .eq('id', toResume.sessionId)
+
+      setResuming(false)
+      if (err) {
+        setError(err.message)
+        return
+      }
+
+      setPlayer(toResume.player)
+      setSessionId(toResume.sessionId)
+      setPitches(
+        toResume.pitches.map((p) => ({
+          id: p.id,
+          pitch_type: p.pitch_type,
+          intended_cells: p.intended_cells ?? [],
+          actual_x: Number(p.actual_x),
+          actual_y: Number(p.actual_y),
+          velocity: p.velocity,
+          sequence_order: p.sequence_order,
+        }))
+      )
+      setNotes(toResume.notes ?? '')
+      clearSessionToResume?.()
+    })()
+  }, [sessionToResume, clearSessionToResume, offline?.isOnline])
 
   async function handleStartSession() {
     if (!player) return
@@ -47,6 +90,7 @@ export function Session() {
       setStarting(false)
       setSessionId(tempSessionId)
       setPitches([])
+      setNotes('')
       offline?.refreshPendingCount()
     }
 
@@ -70,6 +114,7 @@ export function Session() {
       }
       setSessionId(data.id)
       setPitches([])
+      setNotes('')
     } catch (e) {
       if (e instanceof TypeError && (e.message === 'Load failed' || e.message === 'Failed to fetch')) {
         await startOffline()
@@ -190,11 +235,15 @@ export function Session() {
 
     async function completeOffline() {
       if (!sessionId) return
-      await addToQueue({ type: 'complete_session', data: { session_id: sessionId } })
+      await addToQueue({
+        type: 'complete_session',
+        data: { session_id: sessionId, notes: notes.trim() || null },
+      })
       setCompleting(false)
       setSessionId(null)
       setPlayer(null)
       setPitches([])
+      setNotes('')
       offline?.refreshPendingCount()
     }
 
@@ -207,7 +256,10 @@ export function Session() {
     try {
       const { error: err } = await supabase
         .from('sessions')
-        .update({ completed_at: new Date().toISOString() })
+        .update({
+          completed_at: new Date().toISOString(),
+          notes: notes.trim() || null,
+        })
         .eq('id', sessionId)
 
       setCompleting(false)
@@ -219,6 +271,7 @@ export function Session() {
       setSessionId(null)
       setPlayer(null)
       setPitches([])
+      setNotes('')
     } catch (e) {
       if (e instanceof TypeError && (e.message === 'Load failed' || e.message === 'Failed to fetch')) {
         await completeOffline()
@@ -240,6 +293,13 @@ export function Session() {
   }
 
   if (!sessionId) {
+    if (sessionToResume && resuming) {
+      return (
+        <div style={{ maxWidth: 512, margin: '0 auto', color: '#94a3b8' }}>
+          Resuming session…
+        </div>
+      )
+    }
     return (
       <div style={{ maxWidth: 512, margin: '0 auto' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: 16 }}>
@@ -309,6 +369,30 @@ export function Session() {
       {error && (
         <p style={{ color: '#f87171', marginBottom: 16 }}>{error}</p>
       )}
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', fontSize: 14, marginBottom: 6, color: '#94a3b8' }}>
+          Notes
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Optional session notes…"
+          rows={3}
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            padding: '10px 12px',
+            borderRadius: 8,
+            backgroundColor: '#1e293b',
+            border: '1px solid #475569',
+            color: 'white',
+            fontSize: 14,
+            resize: 'vertical',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
 
       <AddPitchForm onAdd={handleAddPitch} />
 
