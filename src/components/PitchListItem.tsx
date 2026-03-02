@@ -96,9 +96,13 @@ export function PitchListItem({
       {editing ? (
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={velocityInput}
-            onChange={(e) => setVelocityInput(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === '' || /^\d*\.?\d*$/.test(v)) setVelocityInput(v)
+            }}
             placeholder="mph"
             style={{
               width: 60,

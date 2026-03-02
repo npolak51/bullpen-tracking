@@ -122,13 +122,14 @@ export function AddPitchForm({ onAdd }: AddPitchFormProps) {
           Velocity (mph)
         </label>
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={velocity}
-          onChange={(e) => setVelocity(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v === '' || /^\d*\.?\d*$/.test(v)) setVelocity(v)
+          }}
           placeholder="Optional"
-          min={0}
-          max={120}
-          step={0.1}
           style={{
             width: 100,
             padding: '8px 12px',
