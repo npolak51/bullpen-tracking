@@ -124,6 +124,8 @@ export function AddPitchForm({ onAdd }: AddPitchFormProps) {
         <input
           type="text"
           inputMode="decimal"
+          pattern="[0-9.]*"
+          autoComplete="off"
           value={velocity}
           onChange={(e) => {
             const v = e.target.value

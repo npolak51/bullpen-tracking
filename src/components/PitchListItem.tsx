@@ -98,6 +98,8 @@ export function PitchListItem({
           <input
             type="text"
             inputMode="decimal"
+            pattern="[0-9.]*"
+            autoComplete="off"
             value={velocityInput}
             onChange={(e) => {
               const v = e.target.value
