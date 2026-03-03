@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['batter-silhouette.png', 'vite.svg'],
       manifest: {
         name: 'Bullpen Tracker',

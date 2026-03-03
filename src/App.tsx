@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { OfflineProvider } from './contexts/OfflineContext'
+import { PwaUpdateProvider } from './contexts/PwaUpdateContext'
 import { CustomPitchTypesProvider } from './contexts/CustomPitchTypesContext'
 import { ResumableSessionProvider } from './contexts/ResumableSessionContext'
 import { OfflineBanner } from './components/OfflineBanner'
+import { UpdateBanner } from './components/UpdateBanner'
 import { Roster } from './pages/Roster'
 import { Session } from './pages/Session'
 import { History } from './pages/History'
@@ -48,9 +50,11 @@ export default function App() {
 
   return (
     <OfflineProvider>
+    <PwaUpdateProvider>
     <CustomPitchTypesProvider>
     <ResumableSessionProvider onTabChange={setTab}>
     <div style={styles.app}>
+      <UpdateBanner />
       <OfflineBanner />
       <header style={styles.header}>
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
@@ -96,6 +100,7 @@ export default function App() {
     </div>
     </ResumableSessionProvider>
     </CustomPitchTypesProvider>
+    </PwaUpdateProvider>
     </OfflineProvider>
   )
 }
