@@ -227,6 +227,19 @@ export function Session() {
     }
   }
 
+  async function handleUpdatePitchType(pitchId: string, pitch_type: PitchType) {
+    if (!supabase || !isOnline()) return
+    const { error: err } = await supabase
+      .from('pitches')
+      .update({ pitch_type })
+      .eq('id', pitchId)
+    if (!err) {
+      setPitches((prev) =>
+        prev.map((p) => (p.id === pitchId ? { ...p, pitch_type } : p))
+      )
+    }
+  }
+
   async function handleCompleteSession() {
     if (!sessionId) return
 
@@ -410,6 +423,9 @@ export function Session() {
                 onUpdateVelocity={(v) => handleUpdatePitchVelocity(pitch.id, v)}
                 onUpdateLocation={(x, y) =>
                   handleUpdatePitchLocation(pitch.id, x, y)
+                }
+                onUpdatePitchType={(type) =>
+                  handleUpdatePitchType(pitch.id, type)
                 }
                 offline={!isOnline()}
               />

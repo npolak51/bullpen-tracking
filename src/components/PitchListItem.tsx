@@ -5,6 +5,7 @@ import { getPitchTypeColor, getPitchTypeLabel } from '../lib/pitchTypes'
 import { getAccuracy, isStrike } from '../lib/pitchUtils'
 import { StrikeZone } from './StrikeZone'
 import { BatterSilhouette } from './BatterSilhouette'
+import { PitchTypeSelector } from './PitchTypeSelector'
 import { GRID_HEIGHT } from '../lib/strikeZoneConstants'
 
 interface PitchListItemProps {
@@ -20,6 +21,7 @@ interface PitchListItemProps {
   onDelete: () => void
   onUpdateVelocity: (velocity: number | null) => void
   onUpdateLocation: (actual_x: number, actual_y: number) => void
+  onUpdatePitchType: (pitch_type: PitchType) => void
   offline?: boolean
 }
 
@@ -28,10 +30,12 @@ export function PitchListItem({
   onDelete,
   onUpdateVelocity,
   onUpdateLocation,
+  onUpdatePitchType,
   offline = false,
 }: PitchListItemProps) {
   const { customTypes } = useCustomPitchTypes()
   const [editing, setEditing] = useState(false)
+  const [editingPitchType, setEditingPitchType] = useState(false)
   const [editingLocation, setEditingLocation] = useState(false)
   const [locationPosition, setLocationPosition] = useState({
     x: Number(pitch.actual_x),
@@ -75,7 +79,34 @@ export function PitchListItem({
           flexShrink: 0,
         }}
       />
-      <span style={{ minWidth: 70 }}>{getPitchTypeLabel(pitch.pitch_type, customTypes)}</span>
+      {editingPitchType ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <PitchTypeSelector
+            value={pitch.pitch_type}
+            onChange={(type) => {
+              onUpdatePitchType(type)
+              setEditingPitchType(false)
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setEditingPitchType(false)}
+            style={{
+              padding: '4px 8px',
+              fontSize: 12,
+              backgroundColor: 'transparent',
+              border: '1px solid #475569',
+              borderRadius: 4,
+              color: '#94a3b8',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </span>
+      ) : (
+        <span style={{ minWidth: 70 }}>{getPitchTypeLabel(pitch.pitch_type, customTypes)}</span>
+      )}
       <span style={{ minWidth: 60 }}>{accuracy}%</span>
       <span
         style={{
@@ -148,6 +179,23 @@ export function PitchListItem({
         <span style={{ color: '#94a3b8', minWidth: 50 }}>
           {pitch.velocity != null ? `${pitch.velocity} mph` : '—'}
         </span>
+      )}
+      {!editingPitchType && !offline && (
+        <button
+          type="button"
+          onClick={() => setEditingPitchType(true)}
+          style={{
+            padding: '4px 8px',
+            fontSize: 12,
+            backgroundColor: 'transparent',
+            border: '1px solid #475569',
+            borderRadius: 4,
+            color: '#94a3b8',
+            cursor: 'pointer',
+          }}
+        >
+          Edit type
+        </button>
       )}
       {!editing && !offline && (
         <button

@@ -15,11 +15,18 @@ import type { Pitch, PitchType } from '../types/database'
 
 type ViewMode = 'sessions' | 'composite' | 'combine'
 
+const FASTBALL_TYPES: PitchType[] = ['four_seam', 'two_seam']
+
+function isFastball(pitch_type: PitchType): boolean {
+  return FASTBALL_TYPES.includes(pitch_type)
+}
+
 interface PitchTypeStats {
   pitch_type: PitchType
   count: number
   accuracyPct: number
   avgVelocity: number | null
+  topVelocity: number | null
   strikePct: number
 }
 
@@ -54,6 +61,11 @@ function computePitchTypeStats(pitches: Pitch[]): PitchTypeStats[] {
         isStrike(Number(p.actual_x), Number(p.actual_y))
       )
 
+      const topVelocity =
+        velocities.length > 0
+          ? Math.round(Math.max(...velocities) * 10) / 10
+          : null
+
       return {
         pitch_type,
         count: list.length,
@@ -69,6 +81,7 @@ function computePitchTypeStats(pitches: Pitch[]): PitchTypeStats[] {
                 (velocities.reduce((a, b) => a + b, 0) / velocities.length) * 10
               ) / 10
             : null,
+        topVelocity,
         strikePct:
           list.length > 0
             ? Math.round((strikes.length / list.length) * 100)
@@ -631,13 +644,33 @@ export function History() {
                       <span style={{ minWidth: 70 }}>
                         Accuracy: <strong>{stat.accuracyPct}%</strong>
                       </span>
-                      <span style={{ minWidth: 90 }}>
-                        Avg vel:{' '}
-                        <strong>
-                          {stat.avgVelocity != null
-                            ? `${stat.avgVelocity} mph`
-                            : '—'}
-                        </strong>
+                      <span style={{ minWidth: isFastball(stat.pitch_type) ? 140 : 90 }}>
+                        {isFastball(stat.pitch_type) ? (
+                          <>
+                            Top:{' '}
+                            <strong>
+                              {stat.topVelocity != null
+                                ? `${stat.topVelocity} mph`
+                                : '—'}
+                            </strong>
+                            {' / '}
+                            Avg:{' '}
+                            <strong>
+                              {stat.avgVelocity != null
+                                ? `${stat.avgVelocity} mph`
+                                : '—'}
+                            </strong>
+                          </>
+                        ) : (
+                          <>
+                            Avg vel:{' '}
+                            <strong>
+                              {stat.avgVelocity != null
+                                ? `${stat.avgVelocity} mph`
+                                : '—'}
+                            </strong>
+                          </>
+                        )}
                       </span>
                       <span style={{ minWidth: 80 }}>
                         Strikes: <strong>{stat.strikePct}%</strong>
