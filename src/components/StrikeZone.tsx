@@ -256,7 +256,7 @@ export function StrikeZone({
         }}
       />
 
-      {/* Actual pitch circle (offset up when dragging so finger doesn't obscure it) */}
+      {/* Actual pitch circle */}
       {actualPosition && (
         <div
           style={{
@@ -269,7 +269,6 @@ export function StrikeZone({
             backgroundColor: pitchColor,
             border: '2px solid white',
             pointerEvents: 'none',
-            transform: isDraggingActual ? 'translateY(-18px)' : undefined,
           }}
         />
       )}
