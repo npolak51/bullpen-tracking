@@ -18,6 +18,7 @@ const styles = {
     color: 'white',
     display: 'flex',
     flexDirection: 'column' as const,
+    paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)',
   },
   header: {
     borderBottom: '1px solid #334155',
