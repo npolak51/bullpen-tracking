@@ -24,7 +24,7 @@ interface LoggedPitch {
 
 export function Session() {
   const offline = useOffline()
-  const { sessionToResume, clearSessionToResume } = useResumableSession() ?? {}
+  const { sessionToResume, clearSessionToResume, setActiveSessionId } = useResumableSession() ?? {}
   const [player, setPlayer] = useState<Player | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [pitches, setPitches] = useState<LoggedPitch[]>([])
@@ -33,6 +33,12 @@ export function Session() {
   const [completing, setCompleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resuming, setResuming] = useState(false)
+
+  // Sync active session for History delete warnings
+  useEffect(() => {
+    setActiveSessionId?.(sessionId)
+    return () => setActiveSessionId?.(null)
+  }, [sessionId, setActiveSessionId])
 
   // Load and continue a session from History
   useEffect(() => {

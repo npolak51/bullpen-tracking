@@ -20,6 +20,8 @@ interface ResumableSessionContextValue {
   resumeSession: (data: SessionToResume) => void
   clearSessionToResume: () => void
   setActiveTab: (tab: 'roster' | 'session' | 'history') => void
+  activeSessionId: string | null
+  setActiveSessionId: (id: string | null) => void
 }
 
 const ResumableSessionContext = createContext<ResumableSessionContextValue | null>(
@@ -34,6 +36,7 @@ export function ResumableSessionProvider({
   onTabChange: (tab: 'roster' | 'session' | 'history') => void
 }) {
   const [sessionToResume, setSessionToResume] = useState<SessionToResume | null>(null)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
 
   const resumeSession = useCallback(
     (data: SessionToResume) => {
@@ -61,6 +64,8 @@ export function ResumableSessionProvider({
         resumeSession,
         clearSessionToResume,
         setActiveTab,
+        activeSessionId,
+        setActiveSessionId,
       }}
     >
       {children}

@@ -103,7 +103,7 @@ function formatDate(iso: string) {
 
 export function History() {
   const { customTypes } = useCustomPitchTypes()
-  const { resumeSession } = useResumableSession() ?? {}
+  const { resumeSession, activeSessionId } = useResumableSession() ?? {}
   const [players, setPlayers] = useState<Player[]>([])
   const [sessions, setSessions] = useState<(Session & { player_name: string })[]>([])
   const [pitches, setPitches] = useState<Pitch[]>([])
@@ -114,7 +114,7 @@ export function History() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch players who have completed sessions
+  // Fetch players who have sessions (completed or in progress)
   useEffect(() => {
     if (!supabase) return
 
@@ -122,7 +122,6 @@ export function History() {
       const { data: sessionsData } = await supabase!
         .from('sessions')
         .select('player_id')
-        .not('completed_at', 'is', null)
 
       const playerIds = [...new Set((sessionsData ?? []).map((s) => s.player_id))]
 
@@ -157,7 +156,6 @@ export function History() {
         .from('sessions')
         .select('id, player_id, started_at, completed_at, notes')
         .eq('player_id', selectedPlayerId)
-        .not('completed_at', 'is', null)
         .order('started_at', { ascending: false })
 
       if (err) {
@@ -229,7 +227,24 @@ export function History() {
   async function handleDeleteSession(sessionId: string, e?: React.MouseEvent) {
     e?.stopPropagation()
     if (!supabase) return
-    if (!confirm('Delete this session? All pitches in it will be permanently deleted.')) return
+
+    const session = sessions.find((s) => s.id === sessionId)
+    const isInProgress = session?.completed_at == null
+    const isActiveSession = sessionId === activeSessionId
+
+    let message: string
+    if (isActiveSession) {
+      message =
+        "Warning: You're currently tracking this session. Deleting it will permanently remove all pitches and you'll lose your work. Are you sure you want to delete?"
+    } else if (isInProgress) {
+      message =
+        'Warning: This session is still in progress. Deleting it will permanently remove all pitches. Are you sure you want to delete?'
+    } else {
+      message =
+        'Delete this session? All pitches in it will be permanently deleted.'
+    }
+
+    if (!confirm(message)) return
 
     const { error: err } = await supabase.from('sessions').delete().eq('id', sessionId)
     if (err) {
@@ -415,6 +430,9 @@ export function History() {
                         <span title="Has notes" style={{ fontSize: 14, opacity: 0.8 }}>📝</span>
                       )}
                       <span>{formatDate(s.started_at)}</span>
+                      {s.completed_at == null && (
+                        <span style={{ fontSize: 12, color: '#fbbf24' }}>(in progress)</span>
+                      )}
                     </label>
                     <button
                       type="button"
@@ -477,6 +495,9 @@ export function History() {
                         </span>
                       )}
                       {formatDate(s.started_at)}
+                      {s.completed_at == null && (
+                        <span style={{ fontSize: 12, color: '#fbbf24' }}>(in progress)</span>
+                      )}
                     </span>
                     <button
                       type="button"
